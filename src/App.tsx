@@ -44,6 +44,8 @@ import {
   Zap,
 } from 'lucide-react';
 import type { ActionPlan, AppState, LogEvent, Machine, Scan, Status } from '../shared/types';
+import { decodeError } from '../shared/errors';
+import { RetryTime } from './RetryTime';
 import { demoMachine, demoScan } from './demo';
 
 type Page = 'home' | 'history' | 'system' | 'settings' | 'guide';
@@ -120,6 +122,8 @@ export default function App() {
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const [errorInfo, setErrorInfo] = useState<ReturnType<typeof decodeError> | null>(null);
+  const [githubToken, setGithubToken] = useState('');
   const [toast, setToast] = useState('');
   const [report, setReport] = useState<Scan | null>(null);
   const [history, setHistory] = useState<Scan[]>([]);
@@ -145,6 +149,7 @@ export default function App() {
   const api = window.repoRun;
   const demo = report?.id === 'demo';
   const navigate = (next: Page) => {
+    setGithubToken('');
     setPage(next);
     setReport(null);
     setError('');
@@ -156,13 +161,14 @@ export default function App() {
   };
   const perform = async <T,>(label: string, action: () => Promise<T>): Promise<T | undefined> => {
     setError('');
+    setErrorInfo(null);
     setBusy(label);
     try {
       return await action();
     } catch (error) {
-      setError(
-        (error as Error).message.replace(/^Error invoking remote method '[^']+': Error: /, ''),
-      );
+      const detail = decodeError(error);
+      setError(detail.message);
+      setErrorInfo(detail);
     } finally {
       setBusy('');
     }
@@ -185,11 +191,11 @@ export default function App() {
           setSyncWarning(result.warning || '');
         }
       })
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(decodeError(e).message));
     api
       .system()
       .then((machine) => setState((s) => ({ ...s, machine })))
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(decodeError(e).message));
     return api.onLog((event: LogEvent) => {
       setLogs((value) => (value + event.text).slice(-150000));
       if (event.done)
@@ -264,7 +270,7 @@ export default function App() {
     }
     const user = await perform('Waiting for Google sign-in', () => api!.signIn());
     if (user) {
-      setState((s) => ({ ...s, user }));
+      setState(await api!.getState());
       setModal(null);
       await perform('Loading history', refreshHistory);
       notify('You’re signed in. Your checks will be saved to your account.');
@@ -412,7 +418,8 @@ export default function App() {
                 state.user
                   ? void perform('Signing out', async () => {
                       await api!.signOut();
-                      setState((s) => ({ ...s, user: null }));
+                      setState((s) => ({ ...s, user: null, githubConnected: false }));
+                      setGithubToken('');
                       setHistory([]);
                       setReport(null);
                       setLogs('');
@@ -465,7 +472,25 @@ export default function App() {
           {error && !modal && (
             <div role="alert" className="alert error">
               <TriangleAlert size={18} />
-              <span>{error}</span>
+              <div>
+                <span>{error}</span>
+                {errorInfo?.message === error && errorInfo.retryAt && (
+                  <RetryTime retryAt={errorInfo.retryAt} />
+                )}
+                {errorInfo?.message === error && errorInfo.provider === 'GitHub' && (
+                  <p>
+                    <button
+                      className="text-button"
+                      onClick={() => {
+                        setModal(null);
+                        navigate('settings');
+                      }}
+                    >
+                      GitHub connection settings
+                    </button>
+                  </p>
+                )}
+              </div>
               <button aria-label="Dismiss error" onClick={() => setError('')}>
                 <X size={16} />
               </button>
@@ -1200,6 +1225,88 @@ export default function App() {
                 </form>
               </section>
               <section className="panel settings-panel">
+                <div className="section-heading">
+                  <div>
+                    <h2>GitHub connection</h2>
+                    <p>Optional. Use your GitHub allowance for public repository checks.</p>
+                  </div>
+                  <span className={`badge ${state.githubConnected ? 'ready' : 'unknown'}`}>
+                    {state.githubConnected ? 'Token saved' : 'Not connected'}
+                  </span>
+                </div>
+                <p>
+                  Google sign-in saves your history. This separate GitHub connection can increase
+                  your API allowance. Private repositories remain unsupported.
+                </p>
+                <p>
+                  Use a fine-grained personal access token with public-repository read access only.
+                  Repo Run does not need write access. Your token is encrypted on this computer,
+                  stored for your current Repo Run account, and sent only to GitHub’s API. It is
+                  never synced to Supabase.
+                </p>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (!needDesktop()) return;
+                    const token = githubToken;
+                    setGithubToken('');
+                    void perform('Connecting GitHub', async () => {
+                      await api!.setGithubToken(token);
+                      setState(await api!.getState());
+                      notify('GitHub connected. You can retry your repository check.');
+                    });
+                  }}
+                >
+                  <label htmlFor="github-token">GitHub personal access token</label>
+                  <input
+                    id="github-token"
+                    type="password"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={githubToken}
+                    onChange={(event) => setGithubToken(event.target.value)}
+                    placeholder="github_pat_…"
+                    required
+                  />
+                  <div className="form-actions">
+                    <button
+                      className="button primary"
+                      type="submit"
+                      disabled={isBusy || !state.user}
+                    >
+                      Save GitHub token
+                    </button>
+                    {state.githubConnected && (
+                      <button
+                        className="text-button"
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() =>
+                          void perform('Removing GitHub connection', async () => {
+                            await api!.removeGithubToken();
+                            setGithubToken('');
+                            setState(await api!.getState());
+                            notify(
+                              'GitHub token removed from this computer. You can also revoke it in GitHub.',
+                            );
+                          })
+                        }
+                      >
+                        Remove GitHub token
+                      </button>
+                    )}
+                    <button
+                      className="text-button"
+                      type="button"
+                      onClick={() => open('https://github.com/settings/personal-access-tokens/new')}
+                    >
+                      Create a token on GitHub <ExternalLink size={14} />
+                    </button>
+                  </div>
+                  {!state.user && <small>Sign in to Repo Run before connecting GitHub.</small>}
+                </form>
+              </section>
+              <section className="panel settings-panel">
                 <h2>Made to be free.</h2>
                 <p>
                   Repo Run has no subscription or paid feature tiers. Repository inspection and
@@ -1341,7 +1448,25 @@ export default function App() {
             {error && (
               <div className="alert error" role="alert">
                 <TriangleAlert size={17} />
-                <span>{error}</span>
+                <div>
+                  <span>{error}</span>
+                  {errorInfo?.message === error && errorInfo.retryAt && (
+                    <RetryTime retryAt={errorInfo.retryAt} />
+                  )}
+                  {errorInfo?.message === error && errorInfo.provider === 'GitHub' && (
+                    <p>
+                      <button
+                        className="text-button"
+                        onClick={() => {
+                          setModal(null);
+                          navigate('settings');
+                        }}
+                      >
+                        GitHub connection settings
+                      </button>
+                    </p>
+                  )}
+                </div>
               </div>
             )}
             {modal === 'auth' ? (

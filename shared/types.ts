@@ -93,7 +93,16 @@ export interface AppState {
   user: User | null;
   machine: Machine | null;
   version: string;
+  githubConnected?: boolean;
 }
+export interface ProviderFailure {
+  code: 'rate-limit' | 'authentication' | 'forbidden';
+  provider: 'GitHub' | 'GitLab';
+  message: string;
+  retryAt?: number;
+}
+export type RpcResult<T> =
+  { ok: true; value: T } | { ok: false; error: { message: string } & Partial<ProviderFailure> };
 export interface Command {
   executable: string;
   args: string[];
@@ -122,6 +131,8 @@ export interface HistoryResult {
 export interface RepoRunAPI {
   getState(): Promise<AppState>;
   configure(input: { url: string; key: string }): Promise<void>;
+  setGithubToken(token: string): Promise<void>;
+  removeGithubToken(): Promise<void>;
   signIn(): Promise<User>;
   signOut(): Promise<void>;
   scan(url: string): Promise<Scan>;

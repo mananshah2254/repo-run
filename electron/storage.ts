@@ -45,7 +45,9 @@ export class Storage {
     },
     removeItem: async (key: string) => {
       await unlink(join(this.root, `auth-${Buffer.from(key).toString('hex')}.json`)).catch(
-        () => {},
+        (error: NodeJS.ErrnoException) => {
+          if (error.code !== 'ENOENT') throw error;
+        },
       );
     },
   };

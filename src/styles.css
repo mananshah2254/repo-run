@@ -2452,3 +2452,12 @@ td {
     font-size: 12px;
   }
 }
+
+.retry-time {
+  margin-top: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.retry-time small {
+  display: block;
+  margin-top: 4px;
+}

@@ -47,3 +47,93 @@ test('home and sample report stay within a narrow viewport', async ({ page }) =>
     true,
   );
 });
+
+test('provider reset time counts down and remains actionable after expiry', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-10-05T12:00:00Z') });
+  await page.addInitScript(() => {
+    window.repoRun = {
+      getState: async () => ({
+        desktop: true,
+        configured: true,
+        user: { id: 'test', name: 'Tester', email: 'test@example.com' },
+        machine: null,
+        version: 'test',
+      }),
+      system: async () => ({
+        platform: 'darwin',
+        label: 'macOS',
+        arch: 'arm64',
+        release: '',
+        tools: [],
+        checkedAt: '',
+      }),
+      history: async () => ({ scans: [] }),
+      onLog: () => () => {},
+      scan: async () => {
+        throw new Error(
+          'REPO_RUN_ERROR:' +
+            JSON.stringify({
+              code: 'rate-limit',
+              provider: 'GitHub',
+              message: 'GitHub API limit reached.',
+              retryAt: Date.now() + 120000,
+            }),
+        );
+      },
+    } as unknown as NonNullable<typeof window.repoRun>;
+  });
+  await page.goto('/');
+  await page.getByLabel('Repository URL').fill('https://github.com/example/repository');
+  await page.getByRole('button', { name: 'Check repository', exact: true }).click();
+  await expect(page.getByRole('timer')).toContainText('2m 0s');
+  await expect(page.getByRole('timer')).toContainText('Retry time:');
+  await page.clock.fastForward(61000);
+  await expect(page.getByRole('timer')).toContainText('59s');
+  await page.clock.fastForward(60000);
+  await expect(page.getByRole('timer')).toContainText('wait time has elapsed');
+  await page.getByRole('button', { name: 'GitHub connection settings' }).click();
+  await expect(page.getByRole('heading', { name: 'GitHub connection', exact: true })).toBeVisible();
+});
+
+test('optional GitHub token is cleared after saving and can be removed', async ({ page }) => {
+  await page.addInitScript(() => {
+    let connected = false;
+    window.repoRun = {
+      getState: async () => ({
+        desktop: true,
+        configured: true,
+        user: { id: 'test', name: 'Tester', email: 'test@example.com' },
+        machine: null,
+        version: 'test',
+        githubConnected: connected,
+      }),
+      system: async () => ({
+        platform: 'darwin',
+        label: 'macOS',
+        arch: 'arm64',
+        release: '',
+        tools: [],
+        checkedAt: '',
+      }),
+      history: async () => ({ scans: [] }),
+      onLog: () => () => {},
+      setGithubToken: async () => {
+        connected = true;
+      },
+      removeGithubToken: async () => {
+        connected = false;
+      },
+    } as unknown as NonNullable<typeof window.repoRun>;
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Settings', exact: true }).click();
+  await page.getByLabel('GitHub personal access token').fill('test_fixture_token_not_real');
+  await page.getByRole('button', { name: 'Save GitHub token', exact: true }).click();
+  await expect(page.getByLabel('GitHub personal access token')).toHaveValue('');
+  await expect(page.getByText('Token saved', { exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Remove GitHub token', exact: true }).click();
+  await expect(page.getByText('Not connected', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remove GitHub token', exact: true })).toHaveCount(
+    0,
+  );
+});

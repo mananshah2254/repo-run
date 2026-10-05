@@ -45,7 +45,7 @@ See [cloud setup](docs/CLOUD_SETUP.md). End users only see Google sign-in. The d
 
 ## Supported inspection
 
-Public **github.com** and **gitlab.com** repositories, on the current default branch, pinned to an immutable commit. API requests use no GitHub/GitLab credentials and therefore have the providers' unauthenticated rate limits.
+Public **github.com** and **gitlab.com** repositories, on the current default branch, pinned to an immutable commit. Checks use public API access by default. Settings offers an optional GitHub personal access token to use your authenticated allowance; GitLab requests remain unauthenticated. Private repositories remain unsupported even with a token.
 
 | Ecosystem               | Sources                                                                             | Automated preparation / launch                                 |
 | ----------------------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------------- |
@@ -63,6 +63,16 @@ Public **github.com** and **gitlab.com** repositories, on the current default br
 Node semver ranges and basic Python compatible-release/comparison ranges are supported. Unsupported syntax, aliases, unreadable versions and conflicts are reported for review. This is a deterministic manifest inspector, **not a guarantee that every open-source repository will run**.
 
 Inspection has explicit bounds: 35 relevant files, depth 5, 150 KB per manifest. GitLab examines up to 500 tree entries; GitHub can return a truncated tree. Notices disclose partial reads and parse failures. Generated, vendored and test-fixture manifests are excluded.
+
+## API limits and GitHub connection
+
+Rate-limit errors show a live countdown and local retry time when the provider supplies `Retry-After` or an exhausted quota's reset header. If no valid time is supplied, the app says so instead of guessing. Ordinary 403 permission errors and 401 credential errors have separate explanations. Known cooldowns are enforced locally without automatic retries. Rate or access failures while reading manifests stop the scan; they cannot produce a successful partial report.
+
+Only immutable revision data is cached, for up to ten minutes and 20 MB. Repository visibility and the default branch revision are fetched on every check; local tool versions are also refreshed. Cache and cooldown keys separate providers and GitHub credentials.
+
+For a higher GitHub allowance, sign into Repo Run and open **Settings → GitHub connection**. Supply a fine-grained token restricted to public-repository read access; no write permissions are needed. The token is validated against GitHub before being saved with OS-backed encryption for the current Repo Run account. It is sent only to `api.github.com`, never to GitLab or Supabase, and never passed to Git commands. Remove the token in Settings or revoke it on GitHub. A token does not guarantee unlimited requests or enable private-repository inspection.
+
+Provider timing behavior follows [GitHub's rate-limit guidance](https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api) and [GitLab's rate-limit headers](https://docs.gitlab.com/administration/settings/user_and_ip_rate_limits/).
 
 ## Installation behavior
 

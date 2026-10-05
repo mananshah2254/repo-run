@@ -1,3 +1,4 @@
+import { ProviderError, ProviderHttp } from './provider-http';
 import type { Repository } from '../../shared/types';
 
 export function parseRepository(input: string) {
@@ -88,46 +89,14 @@ export function relevant(path: string) {
 }
 const markerOnly =
   /(^|\/)(pnpm-lock\.yaml|yarn\.lock|bun\.lockb?|package-lock\.json|uv\.lock|poetry\.lock)$/;
-async function request(url: string, max = 6_000_000): Promise<string> {
-  const response = await fetch(url, {
-    headers: { Accept: 'application/json', 'User-Agent': 'RepoRun/0.1' },
-    signal: AbortSignal.timeout(25000),
-    redirect: 'error',
-  });
-  if (!response.ok) {
-    if (response.status === 404)
-      throw new Error(
-        'Repository or file not found. Check the URL and make sure the repository is public.',
-      );
-    if ([403, 429].includes(response.status))
-      throw new Error('The repository provider’s API limit was reached. Please try again later.');
-    throw new Error(`The repository provider returned HTTP ${response.status}. Please try again.`);
-  }
-  if (Number(response.headers.get('content-length')) > max)
-    throw new Error('Repository response exceeds the inspection size limit.');
-  const reader = response.body!.getReader();
-  let size = 0;
-  const buffers: Uint8Array[] = [];
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      size += value.length;
-      if (size > max) throw new Error('Repository response exceeds the inspection size limit.');
-      buffers.push(value);
-    }
-  } finally {
-    await reader.cancel();
-  }
-  return Buffer.concat(buffers).toString('utf8');
-}
-async function json(url: string) {
-  return JSON.parse(await request(url));
-}
 export async function fetchRepository(
   input: string,
+  options: { client?: ProviderHttp; githubToken?: string } = {},
 ): Promise<{ repository: Repository; files: Record<string, string>; notices: string[] }> {
   const base = parseRepository(input);
+  const client = options.client || new ProviderHttp();
+  const request = (url: string, max?: number) => client.request(url, max, options.githubToken);
+  const json = async (url: string) => JSON.parse(await request(url));
   const notices: string[] = [];
   let repository: Repository;
   let paths: string[];
@@ -211,14 +180,18 @@ export async function fetchRepository(
     );
   const files: Record<string, string> = {};
   for (let i = 0; i < Math.min(selected.length, 35); i += 4)
-    await Promise.all(
+    await Promise.allSettled(
       selected.slice(i, Math.min(i + 4, 35)).map(async (path) => {
         try {
           files[path] = markerOnly.test(path) ? '' : await read(path);
         } catch (error) {
+          if (error instanceof ProviderError) throw error;
           notices.push(`Could not inspect ${path}: ${(error as Error).message}`);
         }
       }),
-    );
+    ).then((results) => {
+      const failed = results.find((result) => result.status === 'rejected');
+      if (failed?.status === 'rejected') throw failed.reason;
+    });
   return { repository, files, notices };
 }

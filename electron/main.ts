@@ -13,6 +13,8 @@ import { Storage } from './storage';
 import { Auth } from './auth';
 import { History } from './history';
 import { Jobs } from './jobs';
+import { GithubConnection } from './github';
+import { ProviderError, ProviderHttp } from './core/provider-http';
 
 let window: BrowserWindow;
 let jobs: Jobs;
@@ -29,6 +31,8 @@ else {
     .then(async () => {
       const storage = new Storage(app.getPath('userData'));
       const auth = new Auth(storage);
+      const providerHttp = new ProviderHttp();
+      const github = new GithubConnection(storage, providerHttp);
       const history = new History(auth, storage);
       const defaults = JSON.parse(
         await readFile(join(__dirname, 'config.json'), 'utf8').catch(
@@ -117,7 +121,22 @@ else {
             (dev ? !url?.startsWith('http://127.0.0.1:5173/') : url !== window.webContents.getURL())
           )
             throw new Error('Untrusted request.');
-          return fn(schema.parse(input));
+          try {
+            return { ok: true, value: await fn(schema.parse(input)) };
+          } catch (error) {
+            return {
+              ok: false,
+              error:
+                error instanceof ProviderError
+                  ? error.detail
+                  : {
+                      message:
+                        error instanceof Error
+                          ? error.message
+                          : 'The operation could not be completed.',
+                    },
+            };
+          }
         });
       const id = z.string().uuid();
       const none = z.undefined();
@@ -132,7 +151,11 @@ else {
         if (scanning) throw new Error('A check is already running. Please wait.');
         scanning = true;
         try {
-          const [remote, system] = await Promise.all([fetchRepository(url), inspectMachine()]);
+          const githubToken = await github.token(user.id);
+          const [remote, system] = await Promise.all([
+            fetchRepository(url, { client: providerHttp, githubToken }),
+            inspectMachine(),
+          ]);
           machine = system;
           const findings = analyze(remote.files);
           const report: Scan = {
@@ -153,13 +176,25 @@ else {
           scanning = false;
         }
       }
-      handle('state', none, async () => ({
-        desktop: true,
-        configured: !!auth.client,
-        user: await auth.user(),
-        machine,
-        version: app.getVersion(),
-      }));
+      handle('state', none, async () => {
+        const user = await auth.user();
+        return {
+          desktop: true,
+          configured: !!auth.client,
+          user,
+          machine,
+          version: app.getVersion(),
+          githubConnected: !!(user && (await github.token(user.id))),
+        };
+      });
+      handle('github-token', z.string().max(255), async (token) => {
+        const user = await auth.requireUser();
+        await github.save(user.id, token);
+      });
+      handle('github-disconnect', none, async () => {
+        const user = await auth.requireUser();
+        await github.remove(user.id);
+      });
       handle(
         'configure',
         z.object({ url: z.string().max(250), key: z.string().max(2000) }),
@@ -169,12 +204,14 @@ else {
           downloads.clear();
           activeScans.clear();
           await auth.configure(value.url, value.key);
+          providerHttp.clearCache();
         },
       );
       handle('sign-in', none, () => auth.signIn());
       handle('sign-out', none, async () => {
         jobs.stopAll();
         await auth.signOut();
+        providerHttp.clearCache();
         plans.clear();
         downloads.clear();
         activeScans.clear();
