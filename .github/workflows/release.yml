@@ -1,0 +1,41 @@
+name: Build signed installers
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist:mac
+        env:
+          REPO_RUN_SUPABASE_URL: ${{ vars.REPO_RUN_SUPABASE_URL }}
+          REPO_RUN_SUPABASE_ANON_KEY: ${{ vars.REPO_RUN_SUPABASE_ANON_KEY }}
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - uses: actions/upload-artifact@v4
+        with: { name: Repo-Run-mac-installers, path: 'release/*.*', retention-days: 14 }
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: npm }
+      - run: npm ci
+      - run: npm test
+      - run: npm run dist:win
+        env:
+          REPO_RUN_SUPABASE_URL: ${{ vars.REPO_RUN_SUPABASE_URL }}
+          REPO_RUN_SUPABASE_ANON_KEY: ${{ vars.REPO_RUN_SUPABASE_ANON_KEY }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      - uses: actions/upload-artifact@v4
+        with: { name: Repo-Run-windows-installers, path: 'release/*.exe', retention-days: 14 }
