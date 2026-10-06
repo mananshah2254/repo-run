@@ -6,7 +6,7 @@ Repo Run reads repository manifests, compares runtime requirements with the curr
 
 ## Downloads
 
-Get the [Mac and Windows preview installers](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.0) from the separate [downloads repository](https://github.com/mananshah2254/repo-run-downloads).
+Get the [Mac and Windows preview installers](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.1) from the separate [downloads repository](https://github.com/mananshah2254/repo-run-downloads).
 
 The current preview provides **Mac Apple silicon (ARM64)** and **Windows x64** installers. They are unsigned; the Mac build is not notarized. Google sign-in is still in testing, so general public account access is not yet available. Mac sign-in and synced history have been verified; Windows runtime testing remains pending. Read the release notes before downloading.
 
