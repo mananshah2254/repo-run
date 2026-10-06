@@ -2,7 +2,7 @@
 
 ## Hosted preview status
 
-The hosted development service uses Supabase. Google sign-in, account history synchronization, and session persistence after restart have been verified on Mac. Google authentication remains in Testing; general public sign-in is not yet available. Windows sign-in and cross-device synchronization still need verification.
+The hosted development service uses Supabase. Google sign-in, account history synchronization, and session persistence after restart have been verified on Mac. Google authentication is published in production and open to Google users. Windows sign-in and cross-device synchronization still need verification.
 
 Builds contain only a public Supabase URL and publishable client key. Google client secrets, database passwords, signing certificates, and user sessions must never be committed or included in installers.
 
