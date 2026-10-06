@@ -6,21 +6,48 @@ permissions:
 jobs:
   mac:
     runs-on: macos-latest
+    env:
+      CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 24, cache: npm }
+      - name: Require signing and notarization credentials
+        shell: bash
+        run: |
+          for name in CSC_LINK CSC_KEY_PASSWORD APPLE_ID APPLE_APP_SPECIFIC_PASSWORD APPLE_TEAM_ID; do
+            if [[ -z "${!name}" ]]; then
+              echo "::error::Missing required secret: $name"
+              exit 1
+            fi
+          done
       - run: npm ci
       - run: npm test
-      - run: npm run dist:mac
+      - run: npm run dist:mac -- -c.mac.forceCodeSigning=true -c.dmg.sign=true
         env:
           REPO_RUN_SUPABASE_URL: ${{ vars.REPO_RUN_SUPABASE_URL }}
           REPO_RUN_SUPABASE_ANON_KEY: ${{ vars.REPO_RUN_SUPABASE_ANON_KEY }}
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      - name: Verify signed apps and notarize installer images
+        shell: bash
+        run: |
+          set -euo pipefail
+          for app in 'release/mac/Repo Run.app' 'release/mac-arm64/Repo Run.app'; do
+            codesign --verify --deep --strict --verbose=2 "$app"
+            xcrun stapler validate "$app"
+            spctl --assess --type execute --verbose=2 "$app"
+          done
+          for dmg in release/*.dmg; do
+            codesign --verify --strict --verbose=2 "$dmg"
+            xcrun notarytool submit "$dmg" --apple-id "$APPLE_ID" \
+              --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+            spctl --assess --type open --context context:primary-signature --verbose=2 "$dmg"
+          done
       - uses: actions/upload-artifact@v4
         with: { name: Repo-Run-mac-installers, path: 'release/*.*', retention-days: 14 }
   windows:

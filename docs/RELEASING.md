@@ -33,7 +33,9 @@ Configure the following GitHub Actions secrets for the `Build signed installers`
 
 Set repository variables `REPO_RUN_SUPABASE_URL` and `REPO_RUN_SUPABASE_ANON_KEY` to public client values. The workflow produces Intel and Apple silicon DMGs and ZIPs with hardened runtime and notarization enabled. It uploads build artifacts, not a public release.
 
-No valid code-signing identity was visible during the initial sandboxed local check; certificate availability must be verified before signing. Do not paste certificate passwords, Google client secrets or database passwords into chat or tracked files.
+The release workflow fails if signing or notarization credentials are missing. It verifies app signatures and stapled notarization tickets, submits the signed DMGs to Apple, staples their tickets, and checks Gatekeeper acceptance before uploading artifacts. Do not paste certificate passwords, Google client secrets or database passwords into chat or tracked files.
+
+For local releases, an installed Developer ID Application identity can be used without exporting the private key. Store notarization credentials in Keychain using `xcrun notarytool store-credentials repo-run-notary` in an interactive Terminal. Enter the Apple developer account, team ID and app-specific password when prompted; do not put passwords in shell history. Then set `APPLE_KEYCHAIN_PROFILE=repo-run-notary` when running electron-builder. Use `-c.mac.forceCodeSigning=true -c.dmg.sign=true` for release builds. Submit and staple each DMG separately, then run the same signature, ticket and Gatekeeper checks as the workflow before publishing it.
 
 ## Windows release
 
