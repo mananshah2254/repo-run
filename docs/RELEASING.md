@@ -21,9 +21,9 @@ Unsigned development builds are not a substitute for a signed, notarized public 
 
 ## Mac release
 
-Use a **Developer ID Application** identity for direct download distribution. Export it with its private key as a `.p12` and keep it outside the repository. Apple Distribution / Mac App Store certificates serve a different distribution channel.
+Use a **Developer ID Application** identity for direct download distribution. Repo Run's chosen release process keeps Mac signing on the maintainer's Mac, using its installed identity and the `repo-run-notary` Keychain profile. Do not export or upload the Mac private key or notarization credentials to GitHub for this process. Apple Distribution / Mac App Store certificates serve a different distribution channel.
 
-Configure the following GitHub Actions secrets for the `Build signed installers` workflow:
+If the maintainer later chooses to move Mac signing to GitHub Actions, export the identity and private key as a password-protected `.p12` outside the repository and configure the following secrets for the `Build signed installers` workflow:
 
 - `MAC_CSC_LINK`: base64-encoded signing certificate or supported secure certificate location.
 - `MAC_CSC_KEY_PASSWORD`: certificate password.
