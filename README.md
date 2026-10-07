@@ -6,9 +6,9 @@ Repo Run reads repository manifests, compares runtime requirements with the curr
 
 ## Downloads
 
-Get the [Mac and Windows preview installers](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.1) from the separate [downloads repository](https://github.com/mananshah2254/repo-run-downloads).
+Get the [signed and notarized Mac installers](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.1-macos) and [Windows preview installer](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.1) from the separate [downloads repository](https://github.com/mananshah2254/repo-run-downloads).
 
-The current preview provides **Mac Apple silicon (ARM64)** and **Windows x64** installers. They are unsigned; the published Mac build is not notarized. Google sign-in is in production and open to Google users. Mac sign-in and synced history have been verified; Windows runtime testing remains pending. Read the release notes before downloading.
+The current preview provides **Mac Apple silicon (ARM64)**, **Intel Mac (x64)** and **Windows x64** installers. Both Mac installers are Developer ID signed and notarized by Apple, with stapled tickets and verified Gatekeeper acceptance. The Windows installer remains unsigned. Google sign-in is in production and open to Google users. Apple silicon Mac sign-in and synced history have been verified; Intel Mac launch and Windows runtime testing remain pending. Read the release notes before downloading.
 
 ## Development
 
@@ -90,7 +90,7 @@ Provider timing behavior follows [GitHub's rate-limit guidance](https://docs.git
 
 [Release instructions](docs/RELEASING.md) cover Apple certificates, notarization and Windows signing. CI workflows test both operating systems and create installable artifacts. No installer is published automatically.
 
-The project is an initial working implementation, not yet a broadly tested public release. Local automated tests cover the core and browser interface; Mac Google sign-in and account history have been verified. Real Windows installation, cross-device history, signed installers and notarization still need verification before a stable release.
+The project is an initial working implementation, not yet a broadly tested public release. Local automated tests cover the core and browser interface; Mac Google sign-in, account history, Developer ID signatures and notarization have been verified. Real Windows installation, Windows signing, Intel Mac launch and cross-device history still need verification before a stable release.
 
 ## Code layout
 
