@@ -43,6 +43,10 @@ Use the Windows workflow runner for native validation and NSIS installer generat
 
 Provide `WIN_CSC_LINK` and `WIN_CSC_KEY_PASSWORD` if using an exportable Windows certificate. If using hardware-backed or cloud signing, configure electron-builder's supported signing integration instead. Apple certificates do not sign Windows applications. Unsigned Windows installers may display SmartScreen warnings.
 
+The signed installer workflow requires `WIN_CSC_LINK`, forces code signing, and checks trusted Authenticode signatures and timestamps on both installers and both packaged app executables before uploading artifacts. A missing certificate fails the job instead of producing an unsigned release. The password secret may be empty for a certificate that does not require one. A cloud or hardware signing integration must replace the certificate preflight as well as configure its signing backend.
+
+Choose `mac`, `windows`, or `both` when dispatching the workflow. Mac signing can also stay local using the Keychain procedure above; GitHub secrets are only needed for signing on GitHub runners. Automated build checks do not replace interactive installation and Google login checks on real supported systems.
+
 ## Release checklist
 
 - Verify Google OAuth consent, callback and session refresh on both operating systems.
