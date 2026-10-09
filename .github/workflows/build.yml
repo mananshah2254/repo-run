@@ -27,6 +27,9 @@ jobs:
         run: npx electron-builder --dir --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - name: Verify Windows executable icons
+        if: runner.os == 'Windows'
+        run: node scripts/verify-win-icons.mjs "release/win-unpacked/Repo Run.exe" "release/win-arm64-unpacked/Repo Run.exe"
       - uses: actions/upload-artifact@v4
         with:
           name: Repo-Run-${{ matrix.os }}-unsigned

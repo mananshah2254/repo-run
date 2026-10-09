@@ -6,9 +6,9 @@ Repo Run reads repository manifests, compares runtime requirements with the curr
 
 ## Downloads
 
-Get the [signed and notarized Mac installers](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.1-macos) and [Windows preview installer](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.1) from the separate [downloads repository](https://github.com/mananshah2254/repo-run-downloads).
+Get the [signed and notarized Mac installers](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.1-macos) and [Windows preview installer](https://github.com/mananshah2254/repo-run-downloads/releases/tag/v0.1.2-windows) from the separate [downloads repository](https://github.com/mananshah2254/repo-run-downloads).
 
-The current preview provides **Mac Apple silicon (ARM64)**, **Intel Mac (x64)** and **Windows x64** installers. Both Mac installers are Developer ID signed and notarized by Apple, with stapled tickets and verified Gatekeeper acceptance. The Windows installer remains unsigned. Google sign-in is in production and open to Google users. Apple silicon Mac sign-in and synced history have been verified; Intel Mac launch and Windows runtime testing remain pending. Read the release notes before downloading.
+The current preview provides **Mac Apple silicon (ARM64)**, **Intel Mac (x64)** and **Windows x64** installers. Both Mac installers are Developer ID signed and notarized by Apple, with stapled tickets and verified Gatekeeper acceptance. The Windows installer remains unsigned. Windows v0.1.2 embeds the Repo Run icon in the desktop app and installer; an earlier Windows user confirmed the app installs and runs. Google sign-in is in production and open to Google users. Apple silicon Mac sign-in and synced history have been verified; Intel Mac launch and the new Windows installer still need device verification. Read the release notes before downloading.
 
 ## Development
 

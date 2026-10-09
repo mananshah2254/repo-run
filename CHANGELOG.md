@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 (Windows preview)
+
+- Embed Repo Run's green icon in the Windows application executable, installer, and uninstaller so desktop and Start menu shortcuts use the product icon instead of Electron's default.
+- Add a packaged executable icon check to Windows CI to prevent the default icon from returning.
+
+The Windows installer remains unsigned. The application code and signed, notarized Mac v0.1.1 installers are otherwise unchanged. A Windows user reported that v0.1.1 installs and runs; the corrected v0.1.2 installer still needs an installation check on Windows.
+
 ## 0.1.1
 
 - Show a live countdown and local retry time from provider rate-limit headers, with clock-skew correction. Missing or invalid timing is explained without an invented reset time.

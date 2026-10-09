@@ -1,6 +1,6 @@
 {
   "name": "repo-run",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "From repository to running, without the guesswork.",
   "author": "Repo Run",
   "license": "MIT",
@@ -48,7 +48,9 @@
     "electron": "44.5.1",
     "electron-builder": "^26.0.12",
     "esbuild": "^0.25.10",
+    "pe-library": "^0.4.1",
     "prettier": "^3.9.9",
+    "resedit": "^1.7.2",
     "sharp": "^0.35.5",
     "typescript": "^5.9.2",
     "vite": "^6.4.0",

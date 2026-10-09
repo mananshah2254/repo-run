@@ -80,6 +80,8 @@ jobs:
         env:
           REPO_RUN_SUPABASE_URL: ${{ vars.REPO_RUN_SUPABASE_URL }}
           REPO_RUN_SUPABASE_ANON_KEY: ${{ vars.REPO_RUN_SUPABASE_ANON_KEY }}
+      - name: Verify Windows executable icons
+        run: node scripts/verify-win-icons.mjs "release/win-unpacked/Repo Run.exe" "release/win-arm64-unpacked/Repo Run.exe"
       - name: Verify Windows installer and app signatures
         shell: pwsh
         run: |

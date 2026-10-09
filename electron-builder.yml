@@ -24,10 +24,13 @@ mac:
   gatekeeperAssess: false
   notarize: true
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch: [x64, arm64]
 nsis:
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
