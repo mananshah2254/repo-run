@@ -12,6 +12,9 @@ The current preview provides **Mac Apple silicon (ARM64)**, **Intel Mac (x64)** 
 
 ## Development
 
+Contributions are welcome; see [CONTRIBUTING.md](CONTRIBUTING.md) for the local
+workflow and pull request checklist.
+
 Use **Node.js 24 LTS** (minimum 22.12) and npm. This Node version is for building Repo Run; packaged desktop users do not need Node installed to open the app.
 
 ```sh
